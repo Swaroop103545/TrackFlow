@@ -24,9 +24,13 @@ import {
   Check,
   FileText,
   Layers,
+  Upload,
+  FileCheck,
+  X,
 } from 'lucide-react-native';
 import { useTheme } from '../../src/hooks/useTheme';
 import { projectService } from '../../src/services/projectService';
+import { audioService, PickedAudioResult } from '../../src/services/audioService';
 import { Haptics } from '../../src/utils/haptics';
 import { WorkflowStage } from '../../src/types';
 import { projectValidationSchema } from '../../src/utils/projectValidation';
@@ -56,9 +60,10 @@ export default function CreateProjectScreen() {
   const { theme } = useTheme();
   const router = useRouter();
 
-  // Focus and Calendar Modal State
+  // Focus, Calendar Modal & Audio Attachment State
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [calendarVisible, setCalendarVisible] = useState(false);
+  const [attachedAudio, setAttachedAudio] = useState<PickedAudioResult | null>(null);
 
   const formik = useFormik({
     initialValues: {
@@ -97,6 +102,19 @@ export default function CreateProjectScreen() {
           releaseDate: new Date(values.releaseDate).toISOString(),
           description: fullDescription,
         });
+
+        if (attachedAudio) {
+          await audioService.uploadAudioTrack({
+            projectId: newProject.id,
+            name: `${newProject.name} (Initial Demo)`,
+            fileUri: attachedAudio.uri,
+            fileName: attachedAudio.name,
+            fileSize: attachedAudio.size,
+            mimeType: attachedAudio.mimeType,
+            stage: values.currentStage,
+            versionLabel: 'Demo',
+          });
+        }
 
         Haptics.success();
         router.replace(`/projects/${newProject.id}` as any);
@@ -539,6 +557,77 @@ export default function CreateProjectScreen() {
               />
             </View>
           </View>
+        </View>
+
+        {/* Section 4: Initial Audio Demo / Scratch Track (Optional) */}
+        <View style={[styles.sectionCard, { backgroundColor: theme.colors.surface }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+            Initial Audio Track (Optional)
+          </Text>
+          <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginBottom: 12 }}>
+            Attach a scratch demo, vocal recording, or beat preview to start your project.
+          </Text>
+
+          {!attachedAudio ? (
+            <TouchableOpacity
+              onPress={async () => {
+                Haptics.selection();
+                const res = await audioService.pickAudioFile();
+                if (res) {
+                  setAttachedAudio(res);
+                  Haptics.success();
+                }
+              }}
+              activeOpacity={0.8}
+              style={{
+                borderWidth: 1.5,
+                borderStyle: 'dashed',
+                borderColor: theme.colors.primary,
+                borderRadius: 14,
+                padding: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'rgba(108, 99, 255, 0.05)',
+              }}
+            >
+              <Upload size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
+              <Text style={{ color: theme.colors.primary, fontWeight: '700', fontSize: 14 }}>
+                Attach Demo Audio File
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: theme.colors.primary,
+                borderRadius: 14,
+                padding: 12,
+                backgroundColor: theme.colors.background,
+              }}
+            >
+              <FileCheck size={20} color="#4CAF50" style={{ marginRight: 10 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 13 }} numberOfLines={1}>
+                  {attachedAudio.name}
+                </Text>
+                <Text style={{ color: theme.colors.textSecondary, fontSize: 11 }}>
+                  {audioService.formatFileSize(attachedAudio.size)} • Demo Tag
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  Haptics.selection();
+                  setAttachedAudio(null);
+                }}
+                style={{ padding: 6 }}
+              >
+                <X size={16} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* Action Buttons */}

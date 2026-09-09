@@ -69,3 +69,18 @@ export interface User {
   name: string;
   role: 'Artist' | 'Producer' | 'Mix Engineer' | 'Manager' | 'Collaborator';
 }
+
+export interface AudioTrack {
+  id: string;
+  projectId: string;
+  name: string;
+  fileUri: string;
+  fileName: string;
+  fileSize: number; // in bytes
+  mimeType?: string;
+  duration?: number; // in seconds
+  stage: WorkflowStage;
+  versionLabel?: string; // e.g., "Demo", "V1", "V2", "Stem", "Master"
+  uploadedAt: number;
+}
+

@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { Provider } from 'react-redux';
 import { store } from '../src/store/store';
 import { StatusBar } from 'expo-status-bar';
+import { GlobalAudioPlayerBar } from '../src/components/GlobalAudioPlayerBar';
 
 export default function RootLayout() {
   return (
@@ -34,6 +35,7 @@ export default function RootLayout() {
           }}
         />
       </Stack>
+      <GlobalAudioPlayerBar />
     </Provider>
   );
 }

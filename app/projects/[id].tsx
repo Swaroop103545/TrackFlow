@@ -11,18 +11,21 @@ import {
   Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../src/store/store';
 import { useTheme } from '../../src/hooks/useTheme';
 import { taskService } from '../../src/services/taskService';
 import { WorkflowStage } from '../../src/types';
 import { Haptics } from '../../src/utils/haptics';
+import { AudioUploadModal } from '../../src/components/AudioUploadModal';
+import { AudioPlayerList } from '../../src/components/AudioPlayerList';
 import {
   ArrowLeft,
   Users,
   Settings,
   Disc,
   Play,
+  Pause,
   Calendar,
   ArrowRight,
   Check,
@@ -30,7 +33,10 @@ import {
   Mic,
   Send,
   Download,
+  Upload,
 } from 'lucide-react-native';
+
+import { audioPlaybackService } from '../../src/services/audioPlaybackService';
 
 const CORE_STAGES: WorkflowStage[] = ['Idea', 'Recording', 'Editing', 'Mixing', 'Mastering'];
 
@@ -38,16 +44,19 @@ export default function ProjectDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { theme } = useTheme();
   const router = useRouter();
+  const dispatch = useDispatch();
 
   const project = useSelector((state: RootState) => state.projects.projects[id]);
   const allTasks = useSelector((state: RootState) => Object.values(state.tasks.tasks));
   const projectTasks = allTasks.filter((t) => t.projectId === id);
 
+  const isAudioPlaying = useSelector((state: RootState) => state.audio.isPlaying);
+
   const [activeStage, setActiveStage] = useState<WorkflowStage>(() => {
     return project?.currentStage || 'Mixing';
   });
   const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [uploadModalVisible, setUploadModalVisible] = useState(false);
 
   if (!project) {
     return (
@@ -172,12 +181,16 @@ export default function ProjectDetailsScreen() {
             <TouchableOpacity
               onPress={() => {
                 Haptics.selection();
-                setIsPlaying(!isPlaying);
+                audioPlaybackService.togglePlay();
               }}
               style={styles.playBtn}
               activeOpacity={0.8}
             >
-              <Play size={18} color="#6C63FF" fill={isPlaying ? '#6C63FF' : 'transparent'} />
+              {isAudioPlaying ? (
+                <Pause size={18} color="#6C63FF" fill="#6C63FF" />
+              ) : (
+                <Play size={18} color="#6C63FF" fill="transparent" />
+              )}
             </TouchableOpacity>
           </View>
 
@@ -234,6 +247,12 @@ export default function ProjectDetailsScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Audio Stems & Player Section */}
+        <AudioPlayerList
+          projectId={project.id}
+          onOpenUploadModal={() => setUploadModalVisible(true)}
+        />
 
         {/* Section: Workflow Stage */}
         <View style={styles.sectionHeaderRow}>
@@ -462,6 +481,14 @@ export default function ProjectDetailsScreen() {
           <Send size={16} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
+
+      {/* Audio Upload Modal */}
+      <AudioUploadModal
+        visible={uploadModalVisible}
+        projectId={project.id}
+        initialStage={activeStage}
+        onClose={() => setUploadModalVisible(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
